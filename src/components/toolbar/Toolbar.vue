@@ -8,28 +8,39 @@
     <el-divider />
 
     <el-button-group>
-      <el-button @click="toggleGrid">
+      <el-button :type="showGrid ? 'primary' : 'default'" @click="toggleGrid">
         {{ showGrid ? '隐藏网格' : '显示网格' }}
       </el-button>
-      <el-button @click="toggleAxes">
+      <el-button :type="showAxes ? 'primary' : 'default'" @click="toggleAxes">
         {{ showAxes ? '隐藏坐标轴' : '显示坐标轴' }}
       </el-button>
     </el-button-group>
 
     <el-divider />
 
-    <el-slider
-      v-model="zoom"
-      :min="10"
-      :max="400"
-      :step="10"
-      show-stops
-      @change="setZoom"
-    >
-      <template #append>
-        <span>{{ zoom }}%</span>
+    <el-dropdown @command="handleExecuteCommand" trigger="click">
+      <el-button type="primary">
+        Execute <el-icon class="el-icon--right"><arrow-down /></el-icon>
+      </el-button>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item command="qmorph">Execute Q-Morph</el-dropdown-item>
+        </el-dropdown-menu>
       </template>
-    </el-slider>
+    </el-dropdown>
+
+    <el-divider />
+
+    <div class="zoom-control">
+      <el-slider
+        v-model="zoom"
+        :min="10"
+        :max="400"
+        :step="10"
+        vertical
+        height="150px"
+      />
+    </div>
 
     <el-divider />
 
@@ -38,17 +49,23 @@
       <el-button @click="importFile">导入文件</el-button>
     </el-button-group>
   </div>
+
+  <!-- QMorph参数对话框 -->
+  <QMorphParameters ref="qmorphDialog" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { useMeshStore } from '@/store/mesh'
 import { ElMessage } from 'element-plus'
 import { saveAs } from 'file-saver'
 import { parseMeshFile, parseDtaFile } from '@/utils/fileParser'
 import type { Node, Edge } from '@/types/mesh'
+import QMorphParameters from '../dialog/QMorphParameters.vue'
 
 const meshStore = useMeshStore()
+const qmorphDialog = ref()
 
 // 撤销/重做
 const canUndo = computed(() => meshStore.currentHistoryIndex > 0)
@@ -56,14 +73,38 @@ const undo = () => meshStore.undo()
 const clearAll = () => meshStore.clearAll()
 
 // 显示控制
-const showGrid = computed(() => meshStore.showGrid)
-const showAxes = computed(() => meshStore.showAxes)
-const toggleGrid = () => meshStore.toggleGrid()
-const toggleAxes = () => meshStore.toggleAxes()
+const showGrid = computed({
+  get: () => meshStore.showGrid,
+  set: (value) => meshStore.setShowGrid(value)
+})
+
+const showAxes = computed({
+  get: () => meshStore.showAxes,
+  set: (value) => meshStore.setShowAxes(value)
+})
 
 // 缩放控制
-const zoom = computed(() => meshStore.zoom)
-const setZoom = (value: number) => meshStore.setZoom(value)
+const zoom = computed({
+  get: () => meshStore.zoom,
+  set: (value) => meshStore.setZoom(value)
+})
+
+// 切换网格显示
+const toggleGrid = () => {
+  showGrid.value = !showGrid.value
+}
+
+// 切换坐标轴显示
+const toggleAxes = () => {
+  showAxes.value = !showAxes.value
+}
+
+// 处理执行命令
+const handleExecuteCommand = (command: string) => {
+  if (command === 'qmorph') {
+    qmorphDialog.value.show()
+  }
+}
 
 // 文件操作
 const exportToLatex = () => {
@@ -129,8 +170,8 @@ const generateLatexContent = () => {
 <style scoped>
 .toolbar {
   padding: 10px;
-  background-color: #f5f7fa;
-  border-right: 1px solid #dcdfe6;
+  background-color: #1e1e1e;
+  border-right: 1px solid #333;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -145,5 +186,28 @@ const generateLatexContent = () => {
 
 .el-divider {
   margin: 10px 0;
+  background-color: #333;
+}
+
+.zoom-control {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+:deep(.el-slider) {
+  margin: 0;
+}
+
+:deep(.el-slider__runway) {
+  background-color: #4a4a4a;
+}
+
+:deep(.el-slider__bar) {
+  background-color: #409eff;
+}
+
+:deep(.el-slider__button) {
+  border-color: #409eff;
 }
 </style> 

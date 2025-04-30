@@ -152,6 +152,14 @@ export const useMeshStore = defineStore('mesh', {
 
     clearSelectedNodes() {
       this.selectedNodes = []
+    },
+
+    setShowGrid(value: boolean) {
+      this.showGrid = value
+    },
+
+    setShowAxes(value: boolean) {
+      this.showAxes = value
     }
   }
 }) 
