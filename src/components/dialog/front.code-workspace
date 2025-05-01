@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../../cs/qmorph"
+		},
+		{
+			"path": "../../../../../cs/qmorph/examples"
+		}
+	],
+	"settings": {}
+}

@@ -104,6 +104,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useMeshStore } from '@/store/mesh'
+import { processMeshData } from '@/api/mesh'
+import { ElMessage } from 'element-plus'
 
 const dialogVisible = ref(false)
 
@@ -128,14 +131,39 @@ const defaultParameters = {
 
 const parameters = reactive({ ...defaultParameters })
 
+const meshStore = useMeshStore()
+
 const handleSetDefaults = () => {
   Object.assign(parameters, defaultParameters)
 }
 
-const handleRun = () => {
-  // TODO: 实现运行逻辑
-  console.log('Running QMorph with parameters:', parameters)
-  dialogVisible.value = false
+const handleRun = async () => {
+  if (!meshStore.nodes.length && !meshStore.edges.length) {
+    ElMessage.warning('没有可处理的网格数据')
+    return
+  }
+
+  try {
+    // 发送到后端处理
+    const currentMeshData = {
+      nodes: meshStore.nodes,
+      edges: meshStore.edges
+    }
+    const processedData = await processMeshData(currentMeshData, meshStore.fileType || 'm')
+    
+    // 更新store中的数据
+    meshStore.$patch({
+      nodes: processedData.nodes,
+      edges: processedData.elements
+    })
+    meshStore.saveToHistory()
+    
+    ElMessage.success('Q-Morph处理成功')
+    dialogVisible.value = false
+  } catch (error) {
+    console.error('Q-Morph处理错误:', error)
+    ElMessage.error('Q-Morph处理失败: ' + (error as Error).message)
+  }
 }
 
 // 确保打开对话框时使用默认值

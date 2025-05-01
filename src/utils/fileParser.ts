@@ -1,83 +1,55 @@
-import type { Node, Edge } from '@/types/mesh'
-
-interface MeshData {
-  nodes: Node[]
-  edges: Edge[]
-}
+import type { Node, Edge, MeshData } from '@/types/mesh'
 
 export function parseMeshFile(content: string): MeshData {
-  const lines = content.split('\n')
-  const nodes: Map<string, Node> = new Map()
+  const lines = content.trim().split('\n')
+  const nodes: Node[] = []
   const edges: Edge[] = []
-  let edgeCount = 0
-
-  for (const line of lines) {
-    const trimmedLine = line.trim()
-    if (!trimmedLine || trimmedLine.startsWith('#')) continue
-
-    // 每行包含三个点的坐标：x1,y1, x2,y2, x3,y3
-    const coords = trimmedLine.split(',').map(s => parseFloat(s.trim()))
-    if (coords.length >= 6) {
-      const points = [
-        { x: coords[0], y: coords[1] },
-        { x: coords[2], y: coords[3] },
-        { x: coords[4], y: coords[5] }
-      ]
-
-      // 为每个点创建或获取节点
-      points.forEach(point => {
-        const key = `${point.x},${point.y}`
-        if (!nodes.has(key)) {
-          nodes.set(key, {
-            id: `node-${nodes.size}`,
-            x: point.x,
-            y: point.y,
-            config: {
-              x: point.x,
-              y: point.y,
-              radius: 5,
-              fill: '#fff',
-              stroke: '#fff',
-              strokeWidth: 2
-            }
-          })
-        }
-      })
-
-      // 创建三角形的三条边
-      for (let i = 0; i < 3; i++) {
-        const startPoint = points[i]
-        const endPoint = points[(i + 1) % 3]
-        const startNode = nodes.get(`${startPoint.x},${startPoint.y}`)!
-        const endNode = nodes.get(`${endPoint.x},${endPoint.y}`)!
-
-        // 检查边是否已存在
-        const edgeExists = edges.some(e => 
-          (e.startNodeId === startNode.id && e.endNodeId === endNode.id) ||
-          (e.startNodeId === endNode.id && e.endNodeId === startNode.id)
-        )
-
-        if (!edgeExists) {
-          const edge: Edge = {
-            id: `edge-${edgeCount++}`,
-            startNodeId: startNode.id,
-            endNodeId: endNode.id,
-            config: {
-              points: [0, 0, 0, 0],
-              stroke: '#fff',
-              strokeWidth: 2
-            }
-          }
-          edges.push(edge)
-        }
+  
+  lines.forEach((line, index) => {
+    const coordinates = line.split(',').map(Number)
+    if (coordinates.length === 6) { // 每行6个数字：x1,y1,x2,y2,x3,y3
+      // 创建三个节点
+      const node1: Node = { 
+        id: `node-${index}-1`,
+        x: coordinates[0], 
+        y: coordinates[1] 
       }
+      const node2: Node = { 
+        id: `node-${index}-2`,
+        x: coordinates[2], 
+        y: coordinates[3] 
+      }
+      const node3: Node = { 
+        id: `node-${index}-3`,
+        x: coordinates[4], 
+        y: coordinates[5] 
+      }
+      
+      // 添加节点
+      nodes.push(node1, node2, node3)
+      
+      // 创建边
+      edges.push(
+        { 
+          id: `edge-${index}-1`,
+          source: node1, 
+          target: node2 
+        },
+        { 
+          id: `edge-${index}-2`,
+          source: node2, 
+          target: node3 
+        },
+        { 
+          id: `edge-${index}-3`,
+          source: node3, 
+          target: node1 
+        }
+      )
     }
-  }
+  })
 
-  return { 
-    nodes: Array.from(nodes.values()),
-    edges 
-  }
+  return { nodes, edges }
 }
 
 export function parseDtaFile(content: string): MeshData {

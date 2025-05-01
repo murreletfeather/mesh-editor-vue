@@ -413,13 +413,8 @@ const getNodeConfig = (node: Node) => {
 }
 
 const getEdgeConfig = (edge: Edge) => {
-  const startNode = meshStore.nodes.find(n => n.id === edge.startNodeId)
-  const endNode = meshStore.nodes.find(n => n.id === edge.endNodeId)
-  
-  if (!startNode || !endNode) return edge.config
-  
-  const startPos = gridToStage(startNode.x, startNode.y)
-  const endPos = gridToStage(endNode.x, endNode.y)
+  const startPos = gridToStage(edge.source.x, edge.source.y)
+  const endPos = gridToStage(edge.target.x, edge.target.y)
   
   return {
     points: [startPos.x, startPos.y, endPos.x, endPos.y],
@@ -433,19 +428,25 @@ const getEdgeConfig = (edge: Edge) => {
 .mesh-editor {
   width: 100%;
   height: 100%;
-  position: relative;
   background-color: #000;
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .canvas-container {
   width: 100%;
   height: 100%;
-  overflow: hidden;
   position: relative;
-  flex: 1;
+  overflow: hidden;
+}
+
+/* 确保canvas元素正确显示 */
+.konvajs-content {
   background-color: #000;
+}
+
+canvas {
+  display: block;
 }
 
 :deep(.v-stage) {

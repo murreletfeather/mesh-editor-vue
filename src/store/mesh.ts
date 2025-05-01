@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { Node, Edge } from '@/types/mesh'
+import type { Node, Edge, MeshData } from '@/types/mesh'
 
 export const useMeshStore = defineStore('mesh', {
   state: () => ({
@@ -13,7 +13,9 @@ export const useMeshStore = defineStore('mesh', {
     showGrid: true,
     showAxes: true,
     history: [] as any[],
-    currentHistoryIndex: -1
+    currentHistoryIndex: -1,
+    fileType: '' as 'm' | 'dta' | '',
+    originalMeshData: null as MeshData | null
   }),
 
   actions: {
@@ -35,24 +37,19 @@ export const useMeshStore = defineStore('mesh', {
       this.saveToHistory()
     },
 
-    addEdge(startNodeId: string, endNodeId: string) {
-      const startNode = this.nodes.find(n => n.id === startNodeId)
-      const endNode = this.nodes.find(n => n.id === endNodeId)
-      
-      if (startNode && endNode) {
-        const edge: Edge = {
-          id: `edge-${Date.now()}`,
-          startNodeId,
-          endNodeId,
-          config: {
-            points: [0, 0, 0, 0],
-            stroke: '#fff',
-            strokeWidth: 2
-          }
+    addEdge(startNode: Node, endNode: Node) {
+      const edge: Edge = {
+        id: `edge-${Date.now()}`,
+        source: startNode,
+        target: endNode,
+        config: {
+          points: [startNode.x, startNode.y, endNode.x, endNode.y],
+          stroke: '#fff',
+          strokeWidth: 2
         }
-        this.edges.push(edge)
-        this.saveToHistory()
       }
+      this.edges.push(edge)
+      this.saveToHistory()
     },
 
     updateNodePosition(nodeId: string, x: number, y: number) {
@@ -60,28 +57,27 @@ export const useMeshStore = defineStore('mesh', {
       if (node) {
         node.x = x
         node.y = y
+        this.updateConnectedEdges(node)
         this.saveToHistory()
       }
     },
 
-    updateConnectedEdges(nodeId: string) {
-      const node = this.nodes.find(n => n.id === nodeId)
-      if (!node) return
-
+    updateConnectedEdges(node: Node) {
       this.edges.forEach(edge => {
-        if (edge.startNodeId === nodeId || edge.endNodeId === nodeId) {
-          const startNode = this.nodes.find(n => n.id === edge.startNodeId)
-          const endNode = this.nodes.find(n => n.id === edge.endNodeId)
-          if (startNode && endNode) {
-            edge.config.points = [startNode.x, startNode.y, endNode.x, endNode.y]
-          }
+        if (edge.source.id === node.id) {
+          edge.source = node
+          edge.config!.points = [edge.source.x, edge.source.y, edge.target.x, edge.target.y]
+        }
+        if (edge.target.id === node.id) {
+          edge.target = node
+          edge.config!.points = [edge.source.x, edge.source.y, edge.target.x, edge.target.y]
         }
       })
     },
 
     deleteNode(nodeId: string) {
       this.nodes = this.nodes.filter(n => n.id !== nodeId)
-      this.edges = this.edges.filter(e => e.startNodeId !== nodeId && e.endNodeId !== nodeId)
+      this.edges = this.edges.filter(e => e.source.id !== nodeId && e.target.id !== nodeId)
       this.saveToHistory()
     },
 
@@ -140,11 +136,16 @@ export const useMeshStore = defineStore('mesh', {
     },
 
     addSelectedNode(nodeId: string) {
-      if (!this.selectedNodes.includes(nodeId)) {
+      const node = this.nodes.find(n => n.id === nodeId)
+      if (node && !this.selectedNodes.includes(nodeId)) {
         this.selectedNodes.push(nodeId)
         
         if (this.selectedNodes.length === 2) {
-          this.addEdge(this.selectedNodes[0], this.selectedNodes[1])
+          const startNode = this.nodes.find(n => n.id === this.selectedNodes[0])
+          const endNode = this.nodes.find(n => n.id === this.selectedNodes[1])
+          if (startNode && endNode) {
+            this.addEdge(startNode, endNode)
+          }
           this.selectedNodes = [this.selectedNodes[1]]
         }
       }
